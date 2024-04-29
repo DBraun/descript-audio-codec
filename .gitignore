@@ -174,3 +174,6 @@ archived/
 encoded_out/
 recon/
 recons/
+
+# JetBrains PyCharm
+.idea
