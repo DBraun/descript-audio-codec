@@ -8,6 +8,8 @@ import torch
 import tqdm
 from audiotools import AudioSignal
 from torch import nn
+from torch.utils.benchmark import Timer
+
 
 SUPPORTED_VERSIONS = ["1.0.0"]
 
@@ -130,6 +132,7 @@ class CodecMixin:
         verbose: bool = False,
         normalize_db: float = -16,
         n_quantizers: int = None,
+        benchmark: bool = False,
     ) -> DACFile:
         """Processes an audio signal from a file or AudioSignal object into
         discrete codes. This function processes the signal in short windows,
@@ -213,6 +216,17 @@ class CodecMixin:
             codes.append(c.to(original_device))
             chunk_length = c.shape[-1]
 
+        if benchmark:
+            x = audio_signal[..., 0:n_samples]
+            x = x.zero_pad(0, max(0, n_samples - x.shape[-1]))
+            audio_data = x.audio_data.to(self.device)
+            timer = Timer(
+                stmt='self.encode(self.preprocess(audio_data, self.sample_rate), n_quantizers)',
+                globals={'self': self, 'audio_data': audio_data, 'n_quantizers': n_quantizers})
+            results = timer.blocked_autorange(min_run_time=2)
+            print(f"Compress--Mean time: {results.mean * 1e3:.2f} ms")
+            print(f"Compress--Median time: {results.median * 1e3:.2f} ms")
+
         codes = torch.cat(codes, dim=-1)
 
         dac_file = DACFile(
@@ -237,6 +251,7 @@ class CodecMixin:
         self,
         obj: Union[str, Path, DACFile],
         verbose: bool = False,
+        benchmark: bool = False,
     ) -> AudioSignal:
         """Reconstruct audio from a given .dac file
 
@@ -270,6 +285,15 @@ class CodecMixin:
             z = self.quantizer.from_codes(c)[0]
             r = self.decode(z)
             recons.append(r.to(original_device))
+
+        if benchmark:
+            c = codes[..., :chunk_length].to(self.device)
+            timer = Timer(
+                stmt='self.decode(self.quantizer.from_codes(c)[0])',
+                globals={'self': self, 'c': c})
+            results = timer.blocked_autorange(min_run_time=2)
+            print(f"Decompress--Mean time: {results.mean * 1e3:.2f} ms")
+            print(f"Decompress--Median time: {results.median * 1e3:.2f} ms")
 
         recons = torch.cat(recons, dim=-1)
         recons = AudioSignal(recons, self.sample_rate)

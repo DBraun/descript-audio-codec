@@ -206,6 +206,7 @@ class DAC(BaseModel, CodecMixin):
 
         return audio_data
 
+    @torch.jit.export
     def encode(
         self,
         audio_data: torch.Tensor,
@@ -246,6 +247,7 @@ class DAC(BaseModel, CodecMixin):
         )
         return z, codes, latents, commitment_loss, codebook_loss
 
+    @torch.jit.export
     def decode(self, z: torch.Tensor):
         """Decode given latent codes and return audio data
 
