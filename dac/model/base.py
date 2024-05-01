@@ -223,9 +223,24 @@ class CodecMixin:
             timer = Timer(
                 stmt='self.encode(self.preprocess(audio_data, self.sample_rate), n_quantizers)',
                 globals={'self': self, 'audio_data': audio_data, 'n_quantizers': n_quantizers})
-            results = timer.blocked_autorange(min_run_time=2)
-            print(f"Compress--Mean time: {results.mean * 1e3:.2f} ms")
-            print(f"Compress--Median time: {results.median * 1e3:.2f} ms")
+            execution_times = [timer.timeit(1).times[0] for _ in range(200)]  # Runs 200 individual times
+            execution_times = np.array(execution_times)*1000
+
+            mean_time = execution_times.mean()
+            median_time = np.median(execution_times)
+            min_time = execution_times.min()
+            max_time = execution_times.max()
+            std_time = execution_times.std()
+
+            print('Requested win_duration:', win_duration)
+            print('True window size:', n_samples)
+            print('Hop size:', hop)
+            print(f"Compress--Num executions:", execution_times.shape[0])
+            print(f"Compress--Mean execution time: {mean_time:.2f} ms")
+            print(f"Compress--Median execution time: {median_time:.2f} ms")
+            print(f"Compress--Min execution time: {min_time:.2f} ms")
+            print(f"Compress--Max execution time: {max_time:.2f} ms")
+            print(f"Compress--Std execution time: {std_time:.2f} ms")
 
         codes = torch.cat(codes, dim=-1)
 
@@ -291,9 +306,21 @@ class CodecMixin:
             timer = Timer(
                 stmt='self.decode(self.quantizer.from_codes(c)[0])',
                 globals={'self': self, 'c': c})
-            results = timer.blocked_autorange(min_run_time=2)
-            print(f"Decompress--Mean time: {results.mean * 1e3:.2f} ms")
-            print(f"Decompress--Median time: {results.median * 1e3:.2f} ms")
+            execution_times = [timer.timeit(1).times[0] for _ in range(200)]  # Runs 200 individual times
+            execution_times = np.array(execution_times)*1000
+
+            mean_time = execution_times.mean()
+            median_time = np.median(execution_times)
+            min_time = execution_times.min()
+            max_time = execution_times.max()
+            std_time = execution_times.std()
+
+            print(f"Decompress--Num executions:", execution_times.shape[0])
+            print(f"Decompress--Mean execution time: {mean_time:.2f} ms")
+            print(f"Decompress--Median execution time: {median_time:.2f} ms")
+            print(f"Decompress--Min execution time: {min_time:.2f} ms")
+            print(f"Decompress--Max execution time: {max_time:.2f} ms")
+            print(f"Decompress--Std execution time: {std_time:.2f} ms")
 
         recons = torch.cat(recons, dim=-1)
         recons = AudioSignal(recons, self.sample_rate)
