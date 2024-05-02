@@ -22,12 +22,11 @@ def benchmark_dac(model_type="44khz", model_bitrate='8kbps', win_durations: List
     print(f'Benchmarking model: {model_type}, {model_bitrate}')
 
     with torch.no_grad():
-
-        # the length doesn't matter since it will be padded anyway.
-        x = AudioSignal(torch.randn(1, 1, 44100), model.sample_rate)
-        x = x.to('cuda')
-
         for win_duration in win_durations:
+            # force chunk-encoding by making duration 1 more than win_duration:
+            T = 1+int(win_duration*model.sample_rate)
+            x = AudioSignal(torch.randn(1, 1, T), model.sample_rate)
+            x = x.to('cuda')
             try:
                 dac_file = model.compress(x, win_duration=win_duration, verbose=False, benchmark=True)
                 model.decompress(dac_file, verbose=False, benchmark=True)

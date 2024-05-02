@@ -83,7 +83,9 @@ class CodecMixin:
 
     def get_delay(self):
         # Any number works here, delay is invariant to input length
-        l_out = self.get_output_length(0)
+        l_out = self.hop_length*100
+        l_out = self.get_output_length(l_out)
+        assert l_out > 0
         L = l_out
 
         layers = []
