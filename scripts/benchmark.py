@@ -3,7 +3,7 @@ from typing import List
 import argbind
 import torch
 from audiotools import AudioSignal
-import dac
+from dac.utils import load_model
 
 
 @argbind.bind(without_prefix=True)
@@ -14,9 +14,7 @@ def benchmark_dac(model_type="44khz", model_bitrate='8kbps', win_durations: List
     else:
         win_durations = [float(x) for x in win_durations]
 
-    model_path = dac.utils.download(model_type=model_type, model_bitrate=model_bitrate)
-    model = dac.DAC.load(model_path)
-
+    model = load_model(model_type=model_type, model_bitrate=model_bitrate)
     model = model.to("cuda")
 
     print(f'Benchmarking model: {model_type}, {model_bitrate}')
